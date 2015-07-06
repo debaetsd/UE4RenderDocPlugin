@@ -166,6 +166,7 @@ void FRenderDocPluginModule::OnEditorLoaded(SWindow& SlateWindow, void* Viewport
 	//TODO: REMOVE THIS WHEN WE GET PULL REQUEST ACCEPTED
 
 	HWND WindowHandle = GetActiveWindow();
+	
 
 	//Trigger a capture just to make sure we are set up correctly. This should prevent us from crashing on exit.
 	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
@@ -175,11 +176,12 @@ void FRenderDocPluginModule::OnEditorLoaded(SWindow& SlateWindow, void* Viewport
 		pRENDERDOC_StartFrameCapture, RenderDocStartFrameCapture, RenderDocStartFrameCapture,
 		pRENDERDOC_EndFrameCapture, RenderDocEndFrameCapture, RenderDocEndFrameCapture,
 		{
-		RenderDocStartFrameCapture(WindowHandle);
-		RenderDocEndFrameCapture(WindowHandle);
+			void* deviceHandle = RHIGetNativeDevice();
+			RenderDocStartFrameCapture(deviceHandle, WindowHandle);
+			RenderDocEndFrameCapture(deviceHandle, WindowHandle);
 
-		FString NewestCapture = RenderDocGUI->GetNewestCapture(FPaths::Combine(*FPaths::GameSavedDir(), *FString("RenderDocCaptures")));
-		IFileManager::Get().Delete(*NewestCapture);
+			FString NewestCapture = RenderDocGUI->GetNewestCapture(FPaths::Combine(*FPaths::GameSavedDir(), *FString("RenderDocCaptures")));
+			IFileManager::Get().Delete(*NewestCapture);
 		});
 
 	UE_LOG(RenderDocPlugin, Log, TEXT("RenderDoc plugin initialized!"));
@@ -194,13 +196,15 @@ void FRenderDocPluginModule::CaptureCurrentViewport()
 	FRenderDocPluginNotification::Get().ShowNotification(RenderDocGUI->IsGUIOpen());
 
 	HWND WindowHandle = GetActiveWindow();
+	
 
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 		StartRenderDocCapture,
 		HWND, WindowHandle, WindowHandle,
 		pRENDERDOC_StartFrameCapture, RenderDocStartFrameCapture, RenderDocStartFrameCapture,
 		{
-		RenderDocStartFrameCapture(WindowHandle);
+			void* deviceHandle = RHIGetNativeDevice();
+			RenderDocStartFrameCapture(deviceHandle, WindowHandle);
 		});
 
 	GEditor->GetActiveViewport()->Draw(true);
@@ -212,17 +216,18 @@ void FRenderDocPluginModule::CaptureCurrentViewport()
 		FRenderDocPluginGUI*, RenderDocGUI, RenderDocGUI,
 		pRENDERDOC_EndFrameCapture, RenderDocEndFrameCapture, RenderDocEndFrameCapture,
 		{
-		RenderDocEndFrameCapture(WindowHandle);
+			void* deviceHandle = RHIGetNativeDevice();
+			RenderDocEndFrameCapture( deviceHandle, WindowHandle );
 
-		FString BinaryPath;
-		if (GConfig)
-		{
-			GConfig->GetString(TEXT("RenderDoc"), TEXT("BinaryPath"), BinaryPath, GGameIni);
-		}
+			FString BinaryPath;
+			if ( GConfig )
+			{
+				GConfig->GetString( TEXT( "RenderDoc" ), TEXT( "BinaryPath" ), BinaryPath, GGameIni );
+			}
 
-		RenderDocGUI->StartRenderDoc(FPaths::Combine(*BinaryPath, *FString("renderdocui.exe"))
-			, FPaths::Combine(*FPaths::GameSavedDir(), *FString("RenderDocCaptures"))
-			, SocketPort);
+			RenderDocGUI->StartRenderDoc( FPaths::Combine( *BinaryPath, *FString( "renderdocui.exe" ) )
+										  , FPaths::Combine( *FPaths::GameSavedDir(), *FString( "RenderDocCaptures" ) )
+										  , SocketPort );
 		});
 }
 
