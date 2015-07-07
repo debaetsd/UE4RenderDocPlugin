@@ -165,13 +165,14 @@ void FRenderDocPluginModule::OnEditorLoaded(SWindow& SlateWindow, void* Viewport
 
 	//TODO: REMOVE THIS WHEN WE GET PULL REQUEST ACCEPTED
 
-	HWND WindowHandle = GetActiveWindow();
+	const FViewportRHIRef* ViewportRHI = (const FViewportRHIRef*)ViewportRHIPtr;
+	void* WindowHandle = ( *ViewportRHI )->GetNativeWindow();
 	
 
 	//Trigger a capture just to make sure we are set up correctly. This should prevent us from crashing on exit.
 	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
 		InitializeRenderDoc,
-		HWND, WindowHandle, WindowHandle,
+		void*, WindowHandle, WindowHandle,
 		FRenderDocPluginGUI*, RenderDocGUI, RenderDocGUI,
 		pRENDERDOC_StartFrameCapture, RenderDocStartFrameCapture, RenderDocStartFrameCapture,
 		pRENDERDOC_EndFrameCapture, RenderDocEndFrameCapture, RenderDocEndFrameCapture,
@@ -194,13 +195,13 @@ void FRenderDocPluginModule::CaptureCurrentViewport()
 	UE_LOG(RenderDocPlugin, Log, TEXT("Capture frame and launch renderdoc!"));
 
 	FRenderDocPluginNotification::Get().ShowNotification(RenderDocGUI->IsGUIOpen());
-
-	HWND WindowHandle = GetActiveWindow();
+	
+	void* WindowHandle = FSlateApplication::Get().GetActiveTopLevelWindow()->GetNativeWindow()->GetOSWindowHandle();
 	
 
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 		StartRenderDocCapture,
-		HWND, WindowHandle, WindowHandle,
+		void*, WindowHandle, WindowHandle,
 		pRENDERDOC_StartFrameCapture, RenderDocStartFrameCapture, RenderDocStartFrameCapture,
 		{
 			void* deviceHandle = RHIGetNativeDevice();
@@ -211,7 +212,7 @@ void FRenderDocPluginModule::CaptureCurrentViewport()
 
 	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
 		EndRenderDocCapture,
-		HWND, WindowHandle, WindowHandle,
+		void*, WindowHandle, WindowHandle,
 		uint32, SocketPort, SocketPort,
 		FRenderDocPluginGUI*, RenderDocGUI, RenderDocGUI,
 		pRENDERDOC_EndFrameCapture, RenderDocEndFrameCapture, RenderDocEndFrameCapture,
